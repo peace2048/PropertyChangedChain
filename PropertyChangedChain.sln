@@ -3,6 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PropertyChangedChain", "PropertyChangedChain\PropertyChangedChain.csproj", "{B68CA1D9-57F2-40D8-A136-E0D5C1748A66}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "sample", "sample\sample.csproj", "{9F3074E3-5AE3-4D47-9DF3-A0B409AF0A24}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1CADAAC1-0A6E-4E50-8623-341C95182F66}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +20,10 @@ Global
 		{B68CA1D9-57F2-40D8-A136-E0D5C1748A66}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B68CA1D9-57F2-40D8-A136-E0D5C1748A66}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B68CA1D9-57F2-40D8-A136-E0D5C1748A66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F3074E3-5AE3-4D47-9DF3-A0B409AF0A24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F3074E3-5AE3-4D47-9DF3-A0B409AF0A24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F3074E3-5AE3-4D47-9DF3-A0B409AF0A24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F3074E3-5AE3-4D47-9DF3-A0B409AF0A24}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

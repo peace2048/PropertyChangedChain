@@ -25,10 +25,10 @@ namespace Ailes.PropertyChangedChain
 
         public IObservable<TValue> From<TValue>(Expression<Func<TSource, TValue>> propertyExpr)
         {
-            var memExpr = propertyExpr as MemberExpression;
+            var memExpr = propertyExpr.Body as MemberExpression;
             var propertyName = memExpr.Member.Name;
             var getter = propertyExpr.Compile();
-            var pattern = new EventPattern<TValue>(propertyName, getter);
+            var pattern = new EventPattern<TValue>(propertyName, () => getter(_source));
             _patterns.Add(pattern);
             return pattern;
         }
@@ -37,7 +37,7 @@ namespace Ailes.PropertyChangedChain
         {
             foreach (var pattern in _patterns.Where(_ => _.SourcePropertyName == e.PropertyName))
             {
-                pattern.OnNext(_source);
+                pattern.OnNext();
             }
         }
 
@@ -74,19 +74,19 @@ namespace Ailes.PropertyChangedChain
         {
             string SourcePropertyName { get; }
             bool HasObservers { get; }
-            void OnNext(TSource source);
+            void OnNext();
         }
 
         private class EventPattern<TValue> : IEventPattern, IObservable<TValue>
         {
-            private Func<TSource, TValue> _getter;
-            public AsyncSubject<TValue> _subject;
+            private Func<TValue> _getter;
+            public Subject<TValue> _subject;
 
-            public EventPattern(string propertyName, Func<TSource, TValue> getter)
+            public EventPattern(string propertyName, Func<TValue> getter)
             {
                 SourcePropertyName = propertyName;
                 _getter = getter;
-                _subject = new AsyncSubject<TValue>();
+                _subject = new Subject<TValue>();
             }
 
             #region IEventPattern<TSource> メンバー
@@ -95,9 +95,9 @@ namespace Ailes.PropertyChangedChain
 
             public bool HasObservers { get { return _subject.HasObservers; } }
 
-            public void OnNext(TSource source)
+            public void OnNext()
             {
-                _subject.OnNext(_getter(source));
+                _subject.OnNext(_getter());
             }
 
             #endregion
@@ -106,7 +106,9 @@ namespace Ailes.PropertyChangedChain
 
             public IDisposable Subscribe(IObserver<TValue> observer)
             {
-                return _subject.Subscribe(observer);
+                var subscription = _subject.Subscribe(observer);
+                this.OnNext();
+                return subscription;
             }
 
             #endregion
@@ -116,9 +118,13 @@ namespace Ailes.PropertyChangedChain
 
     public static class SetPropertyExtensions
     {
+        public static PropertyChangedChain<T> AsPropertyChangedChain<T>(this T source) where T : INotifyPropertyChanged
+        {
+            return new PropertyChangedChain<T>(source);
+        }
         public static IDisposable AssignTo<TTarget, TVavle>(this IObservable<TVavle> source, TTarget obj, Expression<Func<TTarget, TVavle>> propertyExpr)
         {
-            var memExpr = propertyExpr as MemberExpression;
+            var memExpr = propertyExpr.Body as MemberExpression;
             var propertyName = memExpr.Member.Name;
             var propInfo = obj.GetType().GetProperty(propertyName);
             return source.Subscribe(_ =>
@@ -128,7 +134,7 @@ namespace Ailes.PropertyChangedChain
         }
         public static IDisposable RaizePropertyChanged<TTarget, TVavle>(this IObservable<TVavle> source, TTarget obj, Expression<Func<TTarget, TVavle>> propertyExpr)
         {
-            var memExpr = propertyExpr as MemberExpression;
+            var memExpr = propertyExpr.Body as MemberExpression;
             var propertyName = memExpr.Member.Name;
             var fieldInfo = obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(_ => _.FieldType == typeof(PropertyChangedEventHandler));
             return source.Subscribe(_ =>
@@ -144,20 +150,22 @@ namespace Ailes.PropertyChangedChain
         }
         public static IDisposable AssignAndRaisePropertyChanged<TTarget, TValue>(this IObservable<TValue> source, TTarget target, Expression<Func<TTarget, TValue>> propertyExpr)
         {
-            var memExpr = propertyExpr as MemberExpression;
+            var memExpr = propertyExpr.Body as MemberExpression;
             var propertyName = memExpr.Member.Name;
             var targetType = target.GetType();
             var propInfo = targetType.GetProperty(propertyName);
             var fieldInfo = targetType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic).FirstOrDefault(_ => _.FieldType == typeof(PropertyChangedEventHandler));
+            var e = new PropertyChangedEventArgs(propInfo.Name);
             return source.Subscribe(_ =>
             {
                 propInfo.SetValue(target, _);
                 var field = fieldInfo.GetValue(target);
-                var e = new PropertyChangedEventArgs(propInfo.Name);
-                var p = new object[] { target, e };
-                foreach (var d in ((MulticastDelegate)field).GetInvocationList())
+                if (field != null)
                 {
-                    d.Method.Invoke(target, p);
+                    foreach (var d in ((MulticastDelegate)field).GetInvocationList())
+                    {
+                        d.DynamicInvoke(target, e);
+                    }
                 }
             });
         }
